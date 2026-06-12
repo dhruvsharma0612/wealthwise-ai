@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+  ELITE
+}
+
+enum AssetType {
+  STOCK
+  ETF
+  CRYPTO
+  MUTUAL_FUND
+  BOND
+  REAL_ESTATE
+  CASH
+  GOLD
+  PPF
+  NPS
+  FD
+  OTHER
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+enum GoalCategory {
+  RETIREMENT
+  HOME
+  EDUCATION
+  TRAVEL
+  EMERGENCY_FUND
+  VEHICLE
+  WEDDING
+  INVESTMENT
+  OTHER
+}
+
+enum TransactionType {
+  BUY
+  SELL
+  DIVIDEND
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum RiskProfile {
+  CONSERVATIVE
+  MODERATE
+  AGGRESSIVE
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum InvestmentExperience {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum OnboardingStep {
+  PERSONAL_INFO
+  INCOME_EXPENSES
+  RISK_PROFILE
+  EMERGENCY_LOANS
+  GOALS
+  COMPLETED
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  currency       String    @default("INR")
+  country        String    @default("IN")
+  plan           Plan      @default(FREE)
+  planExpiresAt  DateTime?
+  aiQueriesUsed  Int       @default(0)
+  aiQueriesReset DateTime  @default(now())
+  isVerified     Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // ── Financial Profile ─────────────────────────────────────────────────────
+  age                  Int?
+  occupation           String?
+  maritalStatus        MaritalStatus?
+  dependents           Int                   @default(0)
+  monthlyIncome        Decimal?              @db.Decimal(20, 2)
+  monthlyExpenses      Decimal?              @db.Decimal(20, 2)
+  monthlySavings       Decimal?              @db.Decimal(20, 2)
+  savingsRate          Decimal?              @db.Decimal(5, 2)
+  emergencyFundMonths  Decimal?              @db.Decimal(4, 1)
+  emergencyFundAmount  Decimal?              @db.Decimal(20, 2)
+  riskProfile          RiskProfile?
+  investmentExperience InvestmentExperience?
+  totalLoans           Decimal?              @db.Decimal(20, 2)
+  totalEMIs            Decimal?              @db.Decimal(20, 2)
+  insuranceCoverage    Boolean               @default(false)
+  insuranceDetails     Json?
+  onboardingStep       OnboardingStep        @default(PERSONAL_INFO)
+  onboardingCompleted  Boolean               @default(false)
+  lastHealthScoreAt    DateTime?
+  financialHealthScore Int?
+  financialHealthGrade String?
+  aiMemorySummary      String?               @db.Text
+
+  // ── Relations ─────────────────────────────────────────────────────────────
+  refreshTokens  RefreshToken[]
+  portfolios     Portfolio[]
+  goals          Goal[]
+  chatSessions   ChatSession[]
+  priceAlerts    PriceAlert[]
+  loans          Loan[]
+  monthlyReviews MonthlyReview[]
+
+  @@index([email])
+}
+
+// ─── Loans ────────────────────────────────────────────────────────────────────
+
+model Loan {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  lenderName        String?
+  outstandingAmount Decimal  @db.Decimal(20, 2)
+  originalAmount    Decimal? @db.Decimal(20, 2)
+  monthlyEmi        Decimal  @db.Decimal(20, 2)
+  interestRate      Decimal  @db.Decimal(5, 2)
+  remainingMonths   Int
+  startDate         DateTime?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ─── Portfolio ────────────────────────────────────────────────────────────────
+
+model Portfolio {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   @default("My Portfolio")
+  description String?
+  currency    String   @default("INR")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assets    Asset[]
+  snapshots PortfolioSnapshot[]
+
+  @@index([userId])
+}
+
+model Asset {
+  id          String    @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  symbol      String
+  name        String
+  type        AssetType
+  quantity    Decimal   @db.Decimal(20, 8)
+  avgBuyPrice Decimal   @db.Decimal(20, 8)
+  currency    String    @default("INR")
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  transactions Transaction[]
+
+  @@index([portfolioId])
+  @@index([symbol])
+}
+
+model Transaction {
+  id        String          @id @default(cuid())
+  assetId   String
+  asset     Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type      TransactionType
+  quantity  Decimal         @db.Decimal(20, 8)
+  price     Decimal         @db.Decimal(20, 8)
+  currency  String          @default("INR")
+  fee       Decimal         @db.Decimal(10, 4) @default(0)
+  date      DateTime
+  notes     String?
+  createdAt DateTime        @default(now())
+
+  @@index([assetId])
+}
+
+model PortfolioSnapshot {
+  id          String    @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  totalValue  Decimal   @db.Decimal(20, 2)
+  currency    String
+  breakdown   Json
+  takenAt     DateTime  @default(now())
+
+  @@index([portfolioId, takenAt])
+}
+
+// ─── Goals ────────────────────────────────────────────────────────────────────
+
+model Goal {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  category      GoalCategory @default(OTHER)
+  targetAmount  Decimal      @db.Decimal(20, 2)
+  currentAmount Decimal      @db.Decimal(20, 2) @default(0)
+  currency      String       @default("INR")
+  targetDate    DateTime?
+  monthlySIP    Decimal?     @db.Decimal(20, 2)
+  priority      String       @default("medium")
+  status        GoalStatus   @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+model ChatSession {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String      @db.Text
+  tokens    Int?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+}
+
+// ─── Monthly Review ───────────────────────────────────────────────────────────
+
+model MonthlyReview {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month           String
+  incomeReceived  Decimal  @db.Decimal(20, 2)
+  totalSpent      Decimal  @db.Decimal(20, 2)
+  totalSaved      Decimal  @db.Decimal(20, 2)
+  totalInvested   Decimal  @db.Decimal(20, 2) @default(0)
+  savingsRate     Decimal  @db.Decimal(5, 2)
+  healthScore     Int?
+  summary         String   @db.Text
+  wins            Json
+  concerns        Json
+  recommendations Json
+  nextMonthFocus  Json
+  rawExpenses     Json?
+  generatedAt     DateTime @default(now())
+
+  @@unique([userId, month])
+  @@index([userId])
+}
+
+// ─── Price Alerts ─────────────────────────────────────────────────────────────
+
+model PriceAlert {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol      String
+  targetPrice Decimal   @db.Decimal(20, 8)
+  condition   String
+  isTriggered Boolean   @default(false)
+  triggeredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([symbol])
+}
