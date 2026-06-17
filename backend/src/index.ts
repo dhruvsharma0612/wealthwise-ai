@@ -30,7 +30,19 @@ const PORT = process.env.PORT ?? 3000;
 
 app.use(helmet());
 app.use(cors({
-  origin:      process.env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    const allowed = [
+      process.env.FRONTEND_URL,
+      "http://localhost:3001",
+      "http://localhost:3000",
+    ].filter(Boolean);
+    // Allow Vercel preview URLs and no-origin requests (mobile/curl)
+    if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
 }));
 app.use(compression());
