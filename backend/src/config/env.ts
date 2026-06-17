@@ -10,7 +10,7 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES:  z.string().default("15m"),
   JWT_REFRESH_EXPIRES: z.string().default("7d"),
   ANTHROPIC_API_KEY:   z.string().min(1),
-  ALPHA_VANTAGE_KEY:   z.string().min(1),
+  ALPHA_VANTAGE_KEY:   z.string().default(""),
   FRONTEND_URL:        z.string().url(),
   BCRYPT_ROUNDS:       z.string().default("12"),
 });
