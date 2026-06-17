@@ -16,6 +16,8 @@ import { redis } from "./services/redis";
 import { authRouter }             from "./modules/auth/auth.routes";
 import { financialProfileRouter } from "./modules/financial-profile/financial-profile.routes";
 import { onboardingRouter }       from "./modules/onboarding/onboarding.routes";
+import { goalsRouter }            from "./modules/goals/goals.routes";
+import { portfolioRouter }        from "./modules/portfolio/portfolio.routes";
 import { chatRouter }             from "./modules/chat/chat.routes";
 import { monthlyReviewRouter }    from "./modules/monthly-review/monthly-review.routes";
 import { marketRouter }           from "./modules/market/market.routes";
@@ -45,6 +47,8 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth",       authRouter);
 app.use("/api/profile",    financialProfileRouter);
 app.use("/api/onboarding", onboardingRouter);
+app.use("/api/goals",      goalsRouter);
+app.use("/api/portfolio",  portfolioRouter);
 app.use("/api/chat",       chatRouter);
 app.use("/api/reviews",    monthlyReviewRouter);
 app.use("/api/market",     marketRouter);

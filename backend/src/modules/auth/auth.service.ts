@@ -1,5 +1,5 @@
 ﻿import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { prisma } from "../../services/prisma";
 import { AppError } from "../../middleware/errorHandler";
@@ -25,9 +25,10 @@ export class AuthService {
     email: string;
     plan: string;
   }) {
-    return jwt.sign(payload, process.env.JWT_ACCESS_SECRET as string, {
+    const opts = {
       expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m",
-    });
+    } as SignOptions;
+    return jwt.sign(payload, process.env.JWT_ACCESS_SECRET!, opts);
   }
 
   private generateRefreshToken() {

@@ -15,13 +15,17 @@ export type PersonalInfoDto = z.infer<typeof personalInfoSchema>;
 
 // ─── Step 2: Income & Expenses ────────────────────────────────────────────────
 
-export const incomeExpensesSchema = z.object({
+// Base object kept separate so .merge() works (ZodEffects is not mergeable).
+const incomeExpensesBase = z.object({
   monthlyIncome:   z.number().positive("Monthly income must be positive"),
   monthlyExpenses: z.number().nonnegative(),
-}).refine((d) => d.monthlyExpenses < d.monthlyIncome, {
-  message: "Monthly expenses cannot exceed monthly income",
-  path: ["monthlyExpenses"],
 });
+
+// Refined version used for validation in the controller.
+export const incomeExpensesSchema = incomeExpensesBase.refine(
+  (d) => d.monthlyExpenses < d.monthlyIncome,
+  { message: "Monthly expenses cannot exceed monthly income", path: ["monthlyExpenses"] }
+);
 
 export type IncomeExpensesDto = z.infer<typeof incomeExpensesSchema>;
 
@@ -78,7 +82,7 @@ export type GoalsStepDto = z.infer<typeof goalsStepSchema>;
 // ─── Full Profile Update ──────────────────────────────────────────────────────
 
 export const updateProfileSchema = personalInfoSchema
-  .merge(incomeExpensesSchema)
+  .merge(incomeExpensesBase)
   .merge(riskProfileSchema)
   .merge(emergencyLoansSchema.omit({ loans: true }))
   .partial();

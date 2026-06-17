@@ -1,18 +1,18 @@
-﻿FROM node:20-alpine
-
+﻿FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Install dependencies first (cached layer)
 COPY package*.json ./
-RUN npm install
-
-# Copy prisma schema and generate client
-COPY prisma ./prisma
+COPY prisma ./prisma/
+RUN npm ci
+COPY . .
+RUN npm run build
 RUN npx prisma generate
 
-# Copy source code
-COPY . .
-
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci --omit=dev && npx prisma generate
+COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

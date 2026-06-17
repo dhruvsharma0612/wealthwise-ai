@@ -38,7 +38,7 @@ ${
 ${user.goals
   .map(
     (g) =>
-      `- ${g.title}: ${g.currency || user.currency} ${g.currentAmount.toLocaleString()} / ${g.targetAmount.toLocaleString()}`
+      `- ${g.title}: ${user.currency} ${g.currentAmount.toLocaleString()} / ${g.targetAmount.toLocaleString()}`
   )
   .join("\n")}`
     : ""

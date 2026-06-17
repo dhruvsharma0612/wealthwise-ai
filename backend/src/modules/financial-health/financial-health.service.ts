@@ -75,12 +75,11 @@ function scoreGoalProgress(goals: Array<{ targetAmount: number; currentAmount: n
     return { score: 8, maxScore: 15, label: "No goals set — define goals to improve", weight: 15 };
   }
   const scores = goals.map((g) => {
-    const pct = Number(g.currentAmount) / Number(g.targetAmount);
+    const pct = g.currentAmount / g.targetAmount;
     if (!g.targetDate) return pct >= 0.5 ? 15 : 8;
     const monthsLeft = Math.max(1, (g.targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30));
-    const monthlyRequired = (Number(g.targetAmount) - Number(g.currentAmount)) / monthsLeft;
-    // If on track: monthly required ≤ reasonable SIP → give full score
-    return monthlyRequired < Number(g.targetAmount) * 0.02 ? 15 : pct > 0.5 ? 10 : 5;
+    const monthlyRequired = (g.targetAmount - g.currentAmount) / monthsLeft;
+    return monthlyRequired < g.targetAmount * 0.02 ? 15 : pct > 0.5 ? 10 : 5;
   });
   const avg = scores.reduce((s, v) => s + v, 0) / scores.length;
   const score = Math.round(avg);
@@ -146,7 +145,13 @@ export class FinancialHealthService {
       savingsRate:           scoreSavingsRate(savingsRate),
       emergencyFund:         scoreEmergencyFund(emergencyMonths),
       debtBurden:            scoreDebtBurden(emiRatio),
-      goalProgress:          scoreGoalProgress(user.goals),
+      goalProgress:          scoreGoalProgress(
+        user.goals.map((g) => ({
+          targetAmount:  Number(g.targetAmount),
+          currentAmount: Number(g.currentAmount),
+          targetDate:    g.targetDate,
+        }))
+      ),
       diversification:       scoreDiversification(assetTypes),
       investmentConsistency: scoreInvestmentConsistency(hasSIP, totalAssetValue),
     };

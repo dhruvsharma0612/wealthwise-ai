@@ -1,6 +1,4 @@
-﻿version: '3.9'
-
-services:
+﻿services:
   postgres:
     image: postgres:16-alpine
     container_name: wealthwise_db
@@ -41,6 +39,9 @@ services:
     container_name: wealthwise_backend
     restart: unless-stopped
     env_file: ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://wealthwise:secret@postgres:5432/wealthwise_db
+      - REDIS_URL=redis://:redissecret@redis:6379
     depends_on:
       postgres:
         condition: service_healthy
