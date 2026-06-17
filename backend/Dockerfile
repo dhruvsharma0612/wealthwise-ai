@@ -14,7 +14,9 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci --omit=dev && npx prisma generate
+# Install ALL deps so prisma CLI is available for migrate deploy at runtime
+RUN npm ci
+# Copy compiled app
 COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-CMD ["sh", "-c", "echo 'Starting migrate...' && npx prisma migrate deploy && echo 'Starting server...' && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
