@@ -17,4 +17,4 @@ COPY prisma ./prisma/
 RUN npm ci --omit=dev && npx prisma generate
 COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "echo 'Starting migrate...' && npx prisma migrate deploy && echo 'Starting server...' && node dist/index.js"]
