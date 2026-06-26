@@ -1,6 +1,7 @@
 import { prisma } from "../../services/prisma";
 import { cache } from "../../services/redis";
 import { logger } from "../../services/logger";
+import { cashflowService } from "../cashflow/cashflow.service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,20 +116,24 @@ export class FinancialHealthService {
     const cached = await cache.get<HealthScoreResult>(cacheKey);
     if (cached) return cached;
 
-    const user = await prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      include: {
-        goals: { where: { status: "ACTIVE" } },
-        portfolios: {
-          where: { isDefault: true },
-          include: { assets: true },
+    const [user, cashflow] = await Promise.all([
+      prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        include: {
+          goals: { where: { status: "ACTIVE" } },
+          portfolios: {
+            where: { isDefault: true },
+            include: { assets: true },
+          },
+          loans: { where: { isActive: true } },
         },
-        loans: { where: { isActive: true } },
-      },
-    });
+      }),
+      // Prefer real tracked cashflow; fall back to onboarding aggregates.
+      cashflowService.actuals(userId),
+    ]);
 
-    const monthlyIncome  = Number(user.monthlyIncome  ?? 0);
-    const monthlyExpenses = Number(user.monthlyExpenses ?? 0);
+    const monthlyIncome  = cashflow.hasData ? cashflow.monthlyIncome  : Number(user.monthlyIncome  ?? 0);
+    const monthlyExpenses = cashflow.hasData ? cashflow.monthlyExpenses : Number(user.monthlyExpenses ?? 0);
     const savings        = monthlyIncome - monthlyExpenses;
     const savingsRate    = monthlyIncome > 0 ? (savings / monthlyIncome) * 100 : 0;
     const emergencyMonths = Number(user.emergencyFundMonths ?? 0);

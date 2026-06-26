@@ -6,11 +6,14 @@ import { authApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Target, BarChart3, MessageSquare,
-  FileText, LogOut, TrendingUp,
+  FileText, LogOut, TrendingUp, Wallet, Receipt, PiggyBank,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard",          label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/dashboard/income",   label: "Income",     icon: Wallet          },
+  { href: "/dashboard/expenses", label: "Expenses",   icon: Receipt         },
+  { href: "/dashboard/budget",   label: "Budget",     icon: PiggyBank       },
   { href: "/dashboard/goals",    label: "Goals",      icon: Target          },
   { href: "/dashboard/portfolio",label: "Portfolio",  icon: BarChart3       },
   { href: "/dashboard/chat",     label: "AI Chat",    icon: MessageSquare   },

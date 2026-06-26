@@ -71,6 +71,26 @@ export const goalsApi = {
   remove:     (id: string)               => api.delete(`/api/goals/${id}`),
 };
 
+export const incomeApi = {
+  list:   (month?: string)             => api.get("/api/income", { params: month ? { month } : {} }),
+  create: (body: object)               => api.post("/api/income", body),
+  update: (id: string, body: object)   => api.patch(`/api/income/${id}`, body),
+  remove: (id: string)                 => api.delete(`/api/income/${id}`),
+};
+
+export const expensesApi = {
+  list:   (month?: string)             => api.get("/api/expenses", { params: month ? { month } : {} }),
+  create: (body: object)               => api.post("/api/expenses", body),
+  update: (id: string, body: object)   => api.patch(`/api/expenses/${id}`, body),
+  remove: (id: string)                 => api.delete(`/api/expenses/${id}`),
+};
+
+export const budgetsApi = {
+  list:   (month?: string)             => api.get("/api/budgets", { params: month ? { month } : {} }),
+  set:    (body: object)               => api.post("/api/budgets", body),
+  remove: (id: string)                 => api.delete(`/api/budgets/${id}`),
+};
+
 export const portfolioApi = {
   get:         ()                         => api.get("/api/portfolio"),
   allocation:  ()                         => api.get("/api/portfolio/allocation"),

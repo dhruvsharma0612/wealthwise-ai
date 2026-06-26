@@ -58,6 +58,33 @@ enum TransactionType {
   WITHDRAWAL
 }
 
+enum IncomeCategory {
+  SALARY
+  BUSINESS
+  FREELANCE
+  INVESTMENT
+  RENTAL
+  BONUS
+  GIFT
+  OTHER
+}
+
+enum ExpenseCategory {
+  HOUSING
+  FOOD
+  TRANSPORT
+  UTILITIES
+  HEALTHCARE
+  ENTERTAINMENT
+  SHOPPING
+  EDUCATION
+  PERSONAL
+  INSURANCE
+  DEBT
+  SAVINGS
+  OTHER
+}
+
 enum RiskProfile {
   CONSERVATIVE
   MODERATE
@@ -137,6 +164,9 @@ model User {
   priceAlerts    PriceAlert[]
   loans          Loan[]
   monthlyReviews MonthlyReview[]
+  incomes        Income[]
+  expenses       Expense[]
+  budgets        Budget[]
 
   @@index([email])
 }
@@ -264,6 +294,57 @@ model Goal {
   updatedAt     DateTime     @updatedAt
 
   @@index([userId])
+}
+
+// ─── Cashflow: Income / Expenses / Budgets ─────────────────────────────────────
+
+model Income {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Decimal        @db.Decimal(20, 2)
+  category    IncomeCategory @default(SALARY)
+  source      String?
+  description String?
+  date        DateTime
+  isRecurring Boolean        @default(false)
+  currency    String         @default("INR")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, date])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Decimal         @db.Decimal(20, 2)
+  category    ExpenseCategory @default(OTHER)
+  description String?
+  date        DateTime
+  isRecurring Boolean         @default(false)
+  currency    String          @default("INR")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId, date])
+}
+
+// One budget limit per category per month (month stored as "YYYY-MM").
+model Budget {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month     String
+  category  ExpenseCategory
+  amount    Decimal         @db.Decimal(20, 2)
+  currency  String          @default("INR")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([userId, month, category])
+  @@index([userId, month])
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────

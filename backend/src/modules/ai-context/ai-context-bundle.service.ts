@@ -1,6 +1,7 @@
 import { prisma } from "../../services/prisma";
 import { cache } from "../../services/redis";
 import { financialHealthService } from "../financial-health/financial-health.service";
+import { cashflowService } from "../cashflow/cashflow.service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ export class AIContextBundleService {
     if (cached) return cached;
 
     // Fetch all data in parallel
-    const [user, healthScore, goals, defaultPortfolio, loans, recentMessages] = await Promise.all([
+    const [user, healthScore, cashflow, goals, defaultPortfolio, loans, recentMessages] = await Promise.all([
       prisma.user.findUniqueOrThrow({
         where: { id: userId },
         select: {
@@ -98,6 +99,8 @@ export class AIContextBundleService {
         },
       }),
       financialHealthService.calculate(userId),
+      // Prefer real tracked cashflow; fall back to onboarding aggregates below.
+      cashflowService.actuals(userId),
       prisma.goal.findMany({
         where:   { userId, status: "ACTIVE" },
         orderBy: { priority: "asc" },
@@ -121,9 +124,9 @@ export class AIContextBundleService {
         : Promise.resolve([]),
     ]);
 
-    const monthlyIncome   = Number(user.monthlyIncome   ?? 0);
-    const monthlyExpenses = Number(user.monthlyExpenses ?? 0);
-    const monthlySavings  = Number(user.monthlySavings  ?? 0);
+    const monthlyIncome   = cashflow.hasData ? cashflow.monthlyIncome   : Number(user.monthlyIncome   ?? 0);
+    const monthlyExpenses = cashflow.hasData ? cashflow.monthlyExpenses : Number(user.monthlyExpenses ?? 0);
+    const monthlySavings  = cashflow.hasData ? cashflow.monthlySavings  : Number(user.monthlySavings  ?? 0);
     const emergencyMonths = Number(user.emergencyFundMonths ?? 0);
     const totalEMIs       = Number(user.totalEMIs ?? 0);
 
